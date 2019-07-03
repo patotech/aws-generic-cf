@@ -3,10 +3,11 @@ Description: Generic CF - Bastion Instance
 
 ## ############################################################################
 ## This file defines a generic bastion instance that can be used for demo 
-## or laboratory purposes in AWS. 
+## or laboratory purposes in AWS, and also a private subnet that does not have
+## access to internet, and is only accesible through the bastion instance.
 ##
 ## Version : 1.0.0
-## Date    : 25-05-2019
+## Date    : 18-06-2019
 ## Author  : Patricio Téllez (ptellez@amazon.com)
 ## ############################################################################
 
@@ -94,6 +95,18 @@ Resources:
       - Key: Name
         Value: Bastion Subnet
 
+  # Private subnet for the test host
+  PrivateSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: BastionVpc
+      CidrBlock: !Select [ 1, !Cidr [ !GetAtt BastionVpc.CidrBlock, 6, 8 ] ]
+      AvailabilityZone: us-east-1a
+      Tags:
+      - Key: Name
+        Value: No Internet Subnet
+
   ## 
   ## Security Groups
   ##
@@ -115,6 +128,24 @@ Resources:
       Tags:
       - Key: Name
         Value: Bastion Security Group
+
+  PrivateInstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow traffic only from the Bastion host
+      VpcId:
+        Ref: BastionVpc
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 22
+        ToPort: 22
+        SourceSecurityGroupId: !Ref BastionSecurityGroup
+      SecurityGroupEgress:
+      - IpProtocol: -1
+        CidrIp: 0.0.0.0/0
+      Tags:
+      - Key: Name
+        Value: Private Host Security Group
 
   ## 
   ## VPC Gateways
